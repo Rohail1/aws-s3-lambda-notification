@@ -70,7 +70,7 @@ def lambda_handler(event, context):
                 f"- Deleted Flag: {delete_marker_flag}\n"
                 f"- Deleted at: {event_time}\n"
                 f"- Actor (principalId): {user_identity}\n"
-                f"- Source IP: {source_ip}"
+                f"- Source IP: {source_ip}\n\n"
             )
             deleted_object_messages.append(deletion_message)
 
@@ -78,20 +78,20 @@ def lambda_handler(event, context):
         else:
             logger.info(f"Ignored event type: {event_name}")
 
-
-
     # Send one SNS email per batch if any objects were deleted
     if deleted_object_messages:
         try:
+            message_body = "\n".join(deleted_object_messages)
             sns.publish(
                 TopicArn=SNS_TOPIC_ARN,
                 Subject=f"S3 Object Deletion Notification ({len(deleted_object_messages)} objects)",
-                Message=deleted_object_messages
+                Message=message_body
             )
             logger.info(f"SNS notification sent for {len(deleted_object_messages)} deleted object(s).")
         except Exception as e:
             logger.error(f"Failed to send SNS notification: {e}")
             raise e
-
+    else:
+        logger.info("No deletions detected in this batch.")
 
     return {"statusCode": 200, "body": "Event processed successfully"}
